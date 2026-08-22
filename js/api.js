@@ -1,158 +1,67 @@
 /**
  * CRM CUSTOMER PORTAL
- * API CLIENT
+ * js/app.js
  *
- * Frontend: GitHub Pages
- * Backend: Google Apps Script
+ * Nhiệm vụ:
+ * - Phát hiện id/token trên URL
+ * - Nếu có id + token -> chuyển sang customer.html
+ * - Nếu không có -> hiển thị trang chủ
  */
 
-const APP_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzXsEC-9m-IYfFEO23-JA04VuKMQU0KQPi3vM_eS_z8jcqF6EpBUx9ytWsv6Re9OdM3Rg/exec";
+(function () {
+  'use strict';
 
+  function getQueryParams() {
+    const params = new URLSearchParams(
+      window.location.search
+    );
 
-/**
- * Gọi GET API
- */
-async function apiGet(params = {}) {
+    return {
+      id: (params.get('id') || '').trim(),
+      token: (params.get('token') || '').trim()
+    };
+  }
 
-  try {
+  function redirectToCustomerPage() {
 
-    const query = new URLSearchParams(params);
+    const params = getQueryParams();
 
-    const url =
-      APP_SCRIPT_URL +
-      "?" +
-      query.toString();
-
-    const response =
-      await fetch(url, {
-        method: "GET",
-        redirect: "follow",
-        cache: "no-store"
-      });
-
-    if (!response.ok) {
-      throw new Error(
-        "HTTP error: " + response.status
-      );
+    if (!params.id || !params.token) {
+      return;
     }
 
-    const data =
-      await response.json();
+    /*
+     * Nếu hiện tại đã ở customer.html
+     * thì không redirect nữa.
+     */
+    const currentPage =
+      window.location.pathname
+        .split('/')
+        .pop();
 
-    return data;
-
-  } catch (error) {
-
-    console.error(
-      "API GET ERROR:",
-      error
-    );
-
-    throw new Error(
-      "Không thể kết nối tới máy chủ."
-    );
-  }
-}
-
-
-/**
- * Gọi POST API
- */
-async function apiPost(data = {}) {
-
-  try {
-
-    const response =
-      await fetch(APP_SCRIPT_URL, {
-        method: "POST",
-        redirect: "follow",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(data)
-      });
-
-    if (!response.ok) {
-      throw new Error(
-        "HTTP error: " + response.status
-      );
+    if (
+      currentPage === 'customer.html'
+    ) {
+      return;
     }
 
-    const result =
-      await response.json();
+    /*
+     * Chuyển sang:
+     *
+     * /thiep/customer.html?id=KH0001&token=xxxx
+     */
+    const customerUrl =
+      'customer.html?id=' +
+      encodeURIComponent(params.id) +
+      '&token=' +
+      encodeURIComponent(params.token);
 
-    return result;
-
-  } catch (error) {
-
-    console.error(
-      "API POST ERROR:",
-      error
-    );
-
-    throw new Error(
-      "Không thể kết nối tới máy chủ."
-    );
-  }
-}
-
-
-/**
- * Kiểm tra server
- */
-async function checkApiHealth() {
-
-  return await apiGet({
-    action: "health"
-  });
-
-}
-
-
-/**
- * Lấy thông tin khách hàng
- */
-async function getCustomer(
-  id,
-  token
-) {
-
-  if (!id || !token) {
-
-    throw new Error(
-      "Thiếu ID hoặc Token."
-    );
+    window.location.replace(customerUrl);
   }
 
-  return await apiGet({
-    action: "getCustomer",
-    id: id,
-    token: token
-  });
+  document.addEventListener(
+    'DOMContentLoaded',
+    redirectToCustomerPage
+  );
 
-}
-
-
-/**
- * Kiểm tra link khách hàng
- */
-async function validateCustomer(
-  id,
-  token
-) {
-
-  if (!id || !token) {
-
-    throw new Error(
-      "Thiếu ID hoặc Token."
-    );
-  }
-
-  return await apiGet({
-    action: "validate",
-    id: id,
-    token: token
-  });
-
-}
+})();
